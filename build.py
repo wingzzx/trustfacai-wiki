@@ -12,6 +12,7 @@ import os
 import re
 import json
 import html
+import shutil
 import datetime
 from pathlib import Path
 
@@ -19,6 +20,7 @@ ROOT = Path(__file__).resolve().parent
 SRC = ROOT / "src"
 CONTENT = SRC / "content"
 TEMPLATES = SRC / "templates"
+STATIC = SRC / "static"
 DIST = ROOT / "dist"
 
 SITE_URL = "https://trustfacai.com"
@@ -32,6 +34,50 @@ CATEGORIES = {
     "marriage-protection": "婚姻与子女财富保全",
     "wealth-allocation": "低利率时代与资产承接",
 }
+
+# ---------- 联系/二维码组件 ----------
+QR_URL = "/images/wechat-qr.jpg"
+
+def contact_card(context="读完这篇，别只是收藏"):
+    return (
+        "<div class='bg-gradient-to-br from-blue-800 to-blue-900 rounded-2xl p-6 md:p-8 text-white my-10'>"
+        "<div class='flex flex-col md:flex-row items-center gap-6'>"
+        "<img src='%s' alt='肥姐问财微信二维码' class='w-32 h-32 md:w-36 md:h-36 rounded-xl bg-white p-1 shrink-0' loading='lazy'>"
+        "<div class='text-center md:text-left'>"
+        "<p class='text-amber-300 text-sm font-semibold mb-1'>%s</p>"
+        "<h3 class='text-xl font-bold mb-2'>加肥姐微信，一对一聊你的钱怎么安排</h3>"
+        "<p class='text-blue-100 text-sm leading-relaxed mb-3'>肥姐是信托公司财富管理理财经理，做高净值财富规划十几年。扫二维码加微信，备注「网站」，帮你做一次免费的资产结构梳理。</p>"
+        "<p class='text-blue-200 text-xs'>也可关注公众号「肥姐问财」，后台回复关键词领取资料包。</p>"
+        "</div></div></div>" % (QR_URL, context))
+
+def author_card():
+    return (
+        "<div class='bg-white rounded-2xl shadow-sm border border-gray-100 p-6 my-8 flex flex-col md:flex-row items-center gap-5'>"
+        "<img src='%s' alt='肥姐问财微信二维码' class='w-24 h-24 rounded-lg bg-white border border-gray-200 p-1 shrink-0' loading='lazy'>"
+        "<div class='text-center md:text-left'>"
+        "<p class='text-xs text-gray-400 mb-1'>作者</p>"
+        "<h3 class='text-lg font-bold text-gray-900 mb-1'>肥姐问财</h3>"
+        "<p class='text-sm text-gray-600 leading-relaxed'>信托公司财富管理理财经理 · 专注家族信托、资产隔离、婚姻财富保全与低利率资产配置</p>"
+        "<p class='text-xs text-gray-400 mt-2'>扫码加微信，备注「网站」领取资料包</p>"
+        "</div></div>" % QR_URL)
+
+def hook_card(keyword, magnet, desc):
+    return (
+        "<div class='bg-amber-50 border border-amber-200 rounded-2xl p-6 my-8'>"
+        "<p class='text-amber-700 text-sm font-semibold mb-1'>📥 免费领取</p>"
+        "<h3 class='text-lg font-bold text-amber-900 mb-2'>%s</h3>"
+        "<p class='text-sm text-gray-700 leading-relaxed mb-4'>%s</p>"
+        "<div class='flex flex-col md:flex-row items-center gap-4'>"
+        "<img src='%s' alt='肥姐问财微信二维码' class='w-24 h-24 rounded-lg bg-white p-1 border border-amber-200 shrink-0' loading='lazy'>"
+        "<div class='text-sm text-gray-700'>"
+        "<p class='mb-1'>① 扫码加微信，备注「<strong>%s</strong>」直接领取</p>"
+        "<p>② 或关注公众号「肥姐问财」，后台回复「<strong>%s</strong>」</p>"
+        "</div></div></div>" % (magnet, desc, QR_URL, keyword, keyword))
+
+def disclaimer():
+    return ("<div class='bg-gray-100 rounded-xl p-4 my-8 text-xs text-gray-500 leading-relaxed'>"
+            "⚠️ 免责声明：本站内容仅供学习参考，不构成任何投资建议或法律意见。信托产品有风险，投资需谨慎。"
+            "涉及婚姻、继承、债务的具体问题，请咨询专业律师；涉及传承工具的选择，请咨询持牌机构专业人士。</div>")
 
 # ---------- 极简 Markdown -> HTML 转换器 ----------
 def inline(text):
@@ -197,17 +243,46 @@ def build_jsonld(article, faq):
     return "\n".join('<script type="application/ld+json">%s</script>' % json.dumps(s, ensure_ascii=False) for s in schema)
 
 # ---------- 渲染 ----------
-def render_page(article, faq):
+def render_page(article, faq, related=None):
     base = (TEMPLATES / "base.html").read_text(encoding="utf-8")
     nav = (TEMPLATES / "nav.html").read_text(encoding="utf-8")
     footer = (TEMPLATES / "footer.html").read_text(encoding="utf-8")
     url = "%s/%s/%s.html" % (SITE_URL, article["category"], article["slug"])
     content = md_to_html(article["body"])
-    # 面包屑
-    crumb = ("<nav class='text-xs text-gray-500 mb-4'><a href='/' class='hover:text-blue-700'>首页</a> <span>/</span> "
-             "<a href='/%s/' class='hover:text-blue-700'>%s</a> <span>/</span> %s</nav>"
-             % (article["category"], CATEGORIES.get(article["category"], ""), article["title"]))
-    content = crumb + "<article>" + content + "</article>"
+    # 文章头部（分类徽章 + 日期 + 作者）
+    header = (
+        "<header class='mb-6'>"
+        "<nav class='text-xs text-gray-500 mb-4'><a href='/' class='hover:text-blue-700'>首页</a> <span>/</span> "
+        "<a href='/%s/' class='hover:text-blue-700'>%s</a></nav>"
+        "<span class='text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full'>%s</span>"
+        "<h1 class='text-3xl md:text-4xl font-bold text-gray-900 leading-tight mt-3 mb-3'>%s</h1>"
+        "<p class='text-sm text-gray-400'>%s ｜ 肥姐问财 · 信托知识库</p>"
+        "<hr class='mt-5 border-gray-200'></header>"
+        % (article["category"], CATEGORIES.get(article["category"], ""),
+           CATEGORIES.get(article["category"], ""), article["title"], article["date"]))
+    content = header + "<article class='text-gray-700'>" + content + "</article>"
+    # 文末：资料包钩子 + 相关阅读 + 作者卡片 + 免责声明
+    tail = ""
+    # 从 FAQ 提取主关键词做钩子（category -> 钩子映射）
+    hook_map = {
+        "family-trust": ("传承", "《资产隔离自查清单》", "6 个问题，测测你的家企资产\"防火墙\"，覆盖混同、婚姻、债务、传承四大风险。"),
+        "debt-isolation": ("隔离", "《资产隔离自查清单》", "6 个问题自查家企混同、债务连带、传承空白，给家庭资产装上\"防火墙\"。"),
+        "marriage-protection": ("隔离", "《资产隔离自查清单》", "给子女的钱、婚前婚后的安排，6 个问题帮你自查婚姻财产风险敞口。"),
+        "wealth-allocation": ("配置", "《一页纸配置自查表》", "三笔钱分筐 → 3 问测风格 → 三档比例 → 10% 试水行动卡，5 分钟理清配置方向。"),
+    }
+    kw, magnet, desc = hook_map.get(article["category"], ("配置", "《一页纸配置自查表》", "三笔钱分筐，5 分钟理清配置方向。"))
+    tail += hook_card(kw, magnet, desc)
+    if related:
+        cards = ""
+        for r in related:
+            cards += ("<a href='/%s/%s.html' class='block bg-white rounded-xl shadow-sm hover:shadow-md transition p-4'>"
+                      "<span class='text-xs text-blue-700'>%s</span>"
+                      "<p class='text-sm font-semibold text-gray-800 mt-1'>%s</p></a>"
+                      % (r["category"], r["slug"], CATEGORIES[r["category"]], r["title"]))
+        tail += ("<section class='my-8'><h2 class='text-xl font-bold text-gray-900 mb-4'>相关阅读</h2>"
+                 "<div class='grid md:grid-cols-2 gap-4'>%s</div></section>" % cards)
+    tail += author_card() + disclaimer()
+    content += tail
     page = (base
             .replace("{{TITLE}}", html.escape(article["title"]) + " | 肥姐问财")
             .replace("{{DESCRIPTION}}", html.escape(article["description"]))
@@ -223,31 +298,76 @@ def render_homepage(articles):
     base = (TEMPLATES / "base.html").read_text(encoding="utf-8")
     nav = (TEMPLATES / "nav.html").read_text(encoding="utf-8")
     footer = (TEMPLATES / "footer.html").read_text(encoding="utf-8")
+    icons = {
+        "family-trust": "🏛️", "debt-isolation": "🛡️",
+        "marriage-protection": "💍", "wealth-allocation": "📈",
+    }
+    descs = {
+        "family-trust": "门槛、流程、分配机制与代际传承工具对比",
+        "debt-isolation": "家企混同、担保连带与资产隔离的法定底线",
+        "marriage-protection": "给子女的钱、婚前婚后安排与防回流机制",
+        "wealth-allocation": "政信到期承接、固收+与三笔钱分类法",
+    }
+    # Hero
+    html_parts = []
+    html_parts.append(
+        "<section class='-mx-4 -mt-10 mb-10 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600 text-white'>"
+        "<div class='max-w-6xl mx-auto px-4 py-16 text-center'>"
+        "<p class='text-amber-300 text-sm font-semibold tracking-widest mb-3'>专业 · 可信 · 易懂</p>"
+        "<h1 class='text-4xl md:text-5xl font-bold mb-4'>信托知识库</h1>"
+        "<p class='text-blue-100 text-lg mb-8 max-w-2xl mx-auto'>把晦涩的法律条文，翻译成你听得懂的大白话。<br class='hidden md:block'>25 篇长青 FAQ，覆盖高净值家庭最关心的 4 大主题。</p>"
+        "<div class='flex flex-wrap gap-3 justify-center'>"
+        "<a href='#categories' class='bg-amber-400 text-blue-900 font-semibold px-6 py-2.5 rounded-lg hover:bg-amber-300 transition'>浏览知识库</a>"
+        "<a href='#contact' class='border border-white/50 px-6 py-2.5 rounded-lg hover:bg-white/10 transition'>联系肥姐</a>"
+        "</div></div></section>")
+    # 数据条
+    html_parts.append(
+        "<section class='grid grid-cols-3 gap-4 max-w-3xl mx-auto mb-12'>"
+        "<div class='bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center'><p class='text-2xl font-bold text-blue-900'>25</p><p class='text-xs text-gray-500 mt-1'>长青 FAQ</p></div>"
+        "<div class='bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center'><p class='text-2xl font-bold text-blue-900'>4</p><p class='text-xs text-gray-500 mt-1'>核心主题</p></div>"
+        "<div class='bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center'><p class='text-2xl font-bold text-blue-900'>3</p><p class='text-xs text-gray-500 mt-1'>免费资料包</p></div>"
+        "</section>")
     # 分类卡片
     cat_cards = []
     for cat, name in CATEGORIES.items():
         n = len([a for a in articles if a["category"] == cat])
         cat_cards.append(
-            "<a href='/%s/' class='bg-white rounded-xl shadow hover:shadow-lg transition p-6 block'>"
-            "<h3 class='text-lg font-bold text-blue-900 mb-1'>%s</h3>"
-            "<p class='text-sm text-gray-500'>%d 篇长青 FAQ</p></a>" % (cat, name, n))
-    # 文章卡片
+            "<a href='/%s/' class='bg-white rounded-2xl shadow-sm hover:shadow-lg border border-gray-100 transition p-6 block group'>"
+            "<span class='text-3xl'>%s</span>"
+            "<h3 class='text-lg font-bold text-gray-900 mt-3 mb-1.5 group-hover:text-blue-800'>%s</h3>"
+            "<p class='text-sm text-gray-500 leading-relaxed'>%s</p>"
+            "<p class='text-xs text-blue-700 font-medium mt-3'>%d 篇 →</p></a>"
+            % (cat, icons[cat], name, descs[cat], n))
+    html_parts.append("<section id='categories' class='mb-14'><h2 class='text-2xl font-bold text-gray-900 mb-6'>知识分类</h2>"
+                      "<div class='grid sm:grid-cols-2 lg:grid-cols-4 gap-5'>" + "\n".join(cat_cards) + "</div></section>")
+    # 文章列表
     art_cards = []
     for a in articles:
         art_cards.append(
-            "<a href='/%s/%s.html' class='bg-white rounded-xl shadow hover:shadow-lg transition p-6 block'>"
-            "<span class='text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full'>%s</span>"
-            "<h3 class='text-lg font-bold text-blue-900 mt-3 mb-2'>%s</h3>"
-            "<p class='text-sm text-gray-600'>%s</p></a>"
+            "<a href='/%s/%s.html' class='bg-white rounded-xl shadow-sm hover:shadow-lg border border-gray-100 transition p-5 flex flex-col'>"
+            "<span class='text-xs bg-blue-50 text-blue-800 px-2 py-1 rounded-full self-start'>%s</span>"
+            "<h3 class='font-bold text-gray-900 mt-3 mb-2 leading-snug group-hover:text-blue-800'>%s</h3>"
+            "<p class='text-sm text-gray-500 leading-relaxed flex-1'>%s</p>"
+            "<span class='text-xs text-blue-600 font-medium mt-3'>阅读全文 →</span></a>"
             % (a["category"], a["slug"], CATEGORIES[a["category"]], html.escape(a["title"]), html.escape(a["description"])))
-    content = (
-        "<section class='text-center py-10'>"
-        "<h1 class='text-3xl md:text-5xl font-bold text-blue-900 mb-4'>信托知识库</h1>"
-        "<p class='text-lg text-gray-600'>专业 · 可信 · 易懂 —— 让信托知识触手可及</p></section>"
-        "<section class='grid md:grid-cols-2 gap-5 mb-10'>%s</section>"
-        "<h2 class='text-2xl font-bold text-blue-900 mb-4'>全部长青 FAQ</h2>"
-        "<div class='grid md:grid-cols-2 gap-5'>%s</div>"
-        % ("\n".join(cat_cards), "\n".join(art_cards)))
+    html_parts.append("<section class='mb-14'><h2 class='text-2xl font-bold text-gray-900 mb-6'>全部长青 FAQ</h2>"
+                      "<div class='grid sm:grid-cols-2 gap-5'>" + "\n".join(art_cards) + "</div></section>")
+    # 联系区（二维码）
+    html_parts.append(
+        "<section id='contact' class='bg-gradient-to-br from-blue-900 to-blue-700 rounded-3xl p-8 md:p-12 text-white mb-4'>"
+        "<div class='flex flex-col md:flex-row items-center gap-8'>"
+        "<img src='/images/wechat-qr.jpg' alt='肥姐问财微信二维码' class='w-40 h-40 md:w-44 md:h-44 rounded-2xl bg-white p-2 shrink-0' loading='lazy'>"
+        "<div class='text-center md:text-left'>"
+        "<p class='text-amber-300 text-sm font-semibold mb-2'>一对一咨询</p>"
+        "<h2 class='text-2xl md:text-3xl font-bold mb-3'>加肥姐微信，聊聊你的钱怎么安排</h2>"
+        "<p class='text-blue-100 leading-relaxed mb-4'>肥姐是信托公司财富管理理财经理，做高净值财富规划十几年。"
+        "扫二维码加微信，备注「网站」，帮你做一次免费的资产结构梳理——只理思路，不推销。</p>"
+        "<div class='flex flex-wrap gap-2 text-xs'>"
+        "<span class='bg-white/10 rounded-full px-3 py-1.5'>回复「隔离」领资产隔离自查清单</span>"
+        "<span class='bg-white/10 rounded-full px-3 py-1.5'>回复「配置」领一页纸配置自查表</span>"
+        "<span class='bg-white/10 rounded-full px-3 py-1.5'>回复「固收」领固收+四看清单</span>"
+        "</div></div></div></section>")
+    content = "\n".join(html_parts)
     page = (base
             .replace("{{TITLE}}", "肥姐问财 · 信托知识库")
             .replace("{{DESCRIPTION}}", "肥姐问财（trustfacai.com）—— 专业、可信、易懂的信托知识平台。家族信托、企业债务隔离、婚姻财富保全、低利率时代资产配置。")
@@ -263,17 +383,27 @@ def render_category_index(cat, articles):
     base = (TEMPLATES / "base.html").read_text(encoding="utf-8")
     nav = (TEMPLATES / "nav.html").read_text(encoding="utf-8")
     footer = (TEMPLATES / "footer.html").read_text(encoding="utf-8")
+    cat_descs = {
+        "family-trust": "家族信托不是富豪专利。门槛、流程、分配机制、费用结构，以及和遗嘱、保单的对比——用大白话讲清传承工具怎么选。",
+        "debt-isolation": "家企不分是资产隔离第一大缺口。从《信托法》核心条款到真实风险场景，讲清企业主的债务防火墙怎么建。",
+        "marriage-protection": "婚姻风险是最容易被忽略、一旦发生伤害最大的风险。给子女的钱、婚前婚后的安排，怎么做到不被分割。",
+        "wealth-allocation": "低利率时代，钱往哪放？政信到期承接、固收+鉴别、三笔钱分类法与科学的权益试水节奏。",
+    }
     cards = []
     for a in articles:
         cards.append(
-            "<a href='/%s/%s.html' class='bg-white rounded-xl shadow hover:shadow-lg transition p-6 block'>"
-            "<h3 class='text-lg font-bold text-blue-900 mb-2'>%s</h3>"
-            "<p class='text-sm text-gray-600'>%s</p></a>"
+            "<a href='/%s/%s.html' class='bg-white rounded-xl shadow-sm hover:shadow-lg border border-gray-100 transition p-6 flex flex-col group'>"
+            "<h3 class='font-bold text-gray-900 mb-2 leading-snug group-hover:text-blue-800'>%s</h3>"
+            "<p class='text-sm text-gray-500 leading-relaxed flex-1'>%s</p>"
+            "<span class='text-xs text-blue-600 font-medium mt-3'>阅读全文 →</span></a>"
             % (cat, a["slug"], html.escape(a["title"]), html.escape(a["description"])))
-    content = ("<nav class='text-xs text-gray-500 mb-4'><a href='/' class='hover:text-blue-700'>首页</a> <span>/</span> %s</nav>"
-               "<h1 class='text-3xl font-bold text-blue-900 mb-6'>%s</h1>"
-               "<div class='grid gap-5'>%s</div>"
-               % (CATEGORIES[cat], CATEGORIES[cat], "\n".join(cards)))
+    content = (
+        "<section class='-mx-4 -mt-10 mb-10 bg-gradient-to-br from-blue-900 to-blue-700 text-white'>"
+        "<div class='px-4 py-12'><nav class='text-xs text-blue-200 mb-3'><a href='/' class='hover:text-amber-300'>首页</a> / %s</nav>"
+        "<h1 class='text-3xl md:text-4xl font-bold mb-3'>%s</h1>"
+        "<p class='text-blue-100 max-w-2xl leading-relaxed'>%s</p></div></section>"
+        "<div class='grid sm:grid-cols-2 gap-5'>%s</div>"
+        % (CATEGORIES[cat], CATEGORIES[cat], cat_descs.get(cat, ""), "\n".join(cards)))
     page = (base
             .replace("{{TITLE}}", CATEGORIES[cat] + " | 肥姐问财")
             .replace("{{DESCRIPTION}}", CATEGORIES[cat] + " —— 肥姐问财信托知识库长青 FAQ。")
@@ -288,7 +418,18 @@ def render_category_index(cat, articles):
 # ---------- 主流程 ----------
 def main():
     DIST.mkdir(parents=True, exist_ok=True)
+    # 复制静态资源（二维码等）
+    if STATIC.exists():
+        for root, dirs, files in os.walk(STATIC):
+            rel = os.path.relpath(root, STATIC)
+            target = DIST if rel == "." else DIST / rel
+            target = Path(target)
+            target.mkdir(parents=True, exist_ok=True)
+            for f in files:
+                shutil.copy2(os.path.join(root, f), target / f)
+                print("asset: /%s/%s" % (rel.replace("\\", "/") if rel != "." else "", f))
     articles = []
+    all_by_cat = {c: [] for c in CATEGORIES}
     for cat in CATEGORIES:
         catdir = CONTENT / cat
         if not catdir.exists():
@@ -310,10 +451,16 @@ def main():
                 "body": body,
             }
             articles.append(article)
-            outdir = DIST / cat
-            outdir.mkdir(parents=True, exist_ok=True)
-            (outdir / (slug + ".html")).write_text(render_page(article, faq), encoding="utf-8")
-            print("built: /%s/%s.html" % (cat, slug))
+            all_by_cat[cat].append(article)
+    # 第二阶段：渲染文章页（含相关阅读）与分类页
+    for article in articles:
+        faq = extract_faq(article["body"])
+        related = [a for a in all_by_cat[article["category"]] if a["slug"] != article["slug"]][:2]
+        outdir = DIST / article["category"]
+        outdir.mkdir(parents=True, exist_ok=True)
+        (outdir / (article["slug"] + ".html")).write_text(render_page(article, faq, related), encoding="utf-8")
+        print("built: /%s/%s.html" % (article["category"], article["slug"]))
+    for cat in CATEGORIES:
         # category index
         cat_articles = [a for a in articles if a["category"] == cat]
         (DIST / cat / "index.html").write_text(render_category_index(cat, cat_articles), encoding="utf-8")

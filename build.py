@@ -47,7 +47,7 @@ def contact_card(context="读完这篇，别只是收藏"):
         "<p class='text-amber-300 text-sm font-semibold mb-1'>%s</p>"
         "<h3 class='text-xl font-bold mb-2'>加肥姐微信，一对一聊你的钱怎么安排</h3>"
         "<p class='text-blue-100 text-sm leading-relaxed mb-3'>肥姐是信托公司财富管理理财经理，做高净值财富规划十几年。扫二维码加微信，备注「网站」，帮你做一次免费的资产结构梳理。</p>"
-        "<p class='text-blue-200 text-xs'>也可关注公众号「肥姐问财」，后台回复关键词领取资料包。</p>"
+        "<p class='text-blue-200 text-xs'>添加后发送想要领取的资料名称，肥姐亲自发你完整版。</p>"
         "</div></div></div>" % (QR_URL, context))
 
 def author_card():
@@ -70,8 +70,8 @@ def hook_card(keyword, magnet, desc):
         "<div class='flex flex-col md:flex-row items-center gap-4'>"
         "<img src='%s' alt='肥姐问财微信二维码' class='w-24 h-24 rounded-lg bg-white p-1 border border-amber-200 shrink-0' loading='lazy'>"
         "<div class='text-sm text-gray-700'>"
-        "<p class='mb-1'>① 扫码加微信，备注「<strong>%s</strong>」直接领取</p>"
-        "<p>② 或关注公众号「肥姐问财」，后台回复「<strong>%s</strong>」</p>"
+        "<p class='mb-1'>① 扫码加肥姐微信，备注「<strong>%s</strong>」直接领取</p>"
+        "<p>② 或添加后发送「<strong>%s</strong>」，资料马上发你，还可顺便做一次免费的资产结构梳理</p>"
         "</div></div></div>" % (magnet, desc, QR_URL, keyword, keyword))
 
 def disclaimer():
@@ -363,9 +363,9 @@ def render_homepage(articles):
         "<p class='text-blue-100 leading-relaxed mb-4'>肥姐是信托公司财富管理理财经理，做高净值财富规划十几年。"
         "扫二维码加微信，备注「网站」，帮你做一次免费的资产结构梳理——只理思路，不推销。</p>"
         "<div class='flex flex-wrap gap-2 text-xs'>"
-        "<span class='bg-white/10 rounded-full px-3 py-1.5'>回复「隔离」领资产隔离自查清单</span>"
-        "<span class='bg-white/10 rounded-full px-3 py-1.5'>回复「配置」领一页纸配置自查表</span>"
-        "<span class='bg-white/10 rounded-full px-3 py-1.5'>回复「固收」领固收+四看清单</span>"
+        "<span class='bg-white/10 rounded-full px-3 py-1.5'>加微信领《资产隔离自查清单》</span>"
+        "<span class='bg-white/10 rounded-full px-3 py-1.5'>加微信领《一页纸配置自查表》</span>"
+        "<span class='bg-white/10 rounded-full px-3 py-1.5'>加微信领《固收+四看清单》</span>"
         "</div></div></div></section>")
     content = "\n".join(html_parts)
     page = (base

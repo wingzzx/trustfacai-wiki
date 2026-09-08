@@ -37,7 +37,6 @@ CATEGORIES = {
 
 # ---------- 联系/二维码组件 ----------
 QR_URL = "/images/wechat-qr.jpg"
-WECHAT_ID = "feijiewencai"  # TODO: 替换为真实微信号（contact.html / 页脚 / 文章钩子卡共用）
 
 def author_card():
     return (
@@ -59,15 +58,10 @@ def hook_card(keyword, magnet, desc):
         "<div class='flex-1 w-full order-1 md:order-2'>"
         "<p class='text-amber-300/90 text-[11px] font-medium tracking-[0.3em] mb-2.5'>私密咨询 · 架构探讨</p>"
         "<h3 class='text-lg md:text-xl font-semibold mb-2 leading-snug'>探讨家族财富法税与传承架构</h3>"
-        "<p class='text-blue-100/75 text-sm leading-relaxed mb-5'>所有沟通均严格遵循客观中立与私密原则。</p>"
-        "<div class='bg-white/10 backdrop-blur-sm ring-1 ring-white/15 rounded-lg px-4 py-2.5 flex items-center justify-between gap-3 mb-2.5'>"
-        "<span class='text-sm whitespace-nowrap'><span class='text-blue-200/75'>微信号：</span><span id='wechat-id' class='font-mono tracking-widest'>%s</span></span>"
-        "<button onclick='copyWechatId()' type='button' class='shrink-0 bg-amber-400 hover:bg-amber-300 active:scale-95 text-blue-950 text-xs font-medium px-3.5 py-1.5 rounded-md transition'>复制</button>"
-        "</div>"
-        "<p class='text-blue-200/60 text-[11px] mb-5'>（手机端可长按识别二维码，或复制微信号添加好友，备注：网站）</p>"
+        "<p class='text-blue-100/75 text-sm leading-relaxed mb-5'>微信扫码或长按识别二维码添加好友，添加时请备注「网站」。所有沟通均严格遵循客观中立与私密原则。</p>"
         "<p class='text-xs text-blue-200/70'>添加好友后，免费发送完整版 <span class='text-amber-300'>%s</span></p>"
         "</div></div></div>"
-        % (QR_URL, WECHAT_ID, magnet))
+        % (QR_URL, magnet))
 
 def disclaimer():
     return ("<div class='bg-gray-100 rounded-xl p-4 my-8 text-xs text-gray-500 leading-relaxed'>"
@@ -348,7 +342,7 @@ def render_homepage(articles):
     html_parts.append("<section class='mb-14'><h2 class='text-2xl font-bold text-gray-900 mb-6'>全部长青 FAQ</h2>"
                       "<div class='grid sm:grid-cols-2 gap-5'>" + "\n".join(art_cards) + "</div></section>")
     # 联系区（私银级联系模块，模板化）
-    contact_html = (TEMPLATES / "contact.html").read_text(encoding="utf-8").replace("{{WECHAT_ID}}", WECHAT_ID)
+    contact_html = (TEMPLATES / "contact.html").read_text(encoding="utf-8")
     html_parts.append(contact_html)
     content = "\n".join(html_parts)
     page = (base

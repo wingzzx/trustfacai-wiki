@@ -37,18 +37,7 @@ CATEGORIES = {
 
 # ---------- 联系/二维码组件 ----------
 QR_URL = "/images/wechat-qr.jpg"
-
-def contact_card(context="读完这篇，别只是收藏"):
-    return (
-        "<div class='bg-gradient-to-br from-blue-800 to-blue-900 rounded-2xl p-6 md:p-8 text-white my-10'>"
-        "<div class='flex flex-col md:flex-row items-center gap-6'>"
-        "<img src='%s' alt='肥姐问财微信二维码' class='w-32 h-32 md:w-36 md:h-36 rounded-xl bg-white p-1 shrink-0' loading='lazy'>"
-        "<div class='text-center md:text-left'>"
-        "<p class='text-amber-300 text-sm font-semibold mb-1'>%s</p>"
-        "<h3 class='text-xl font-bold mb-2'>加肥姐微信，一对一聊你的钱怎么安排</h3>"
-        "<p class='text-blue-100 text-sm leading-relaxed mb-3'>肥姐是信托公司财富管理理财经理，做高净值财富规划十几年。扫二维码加微信，备注「网站」，帮你做一次免费的资产结构梳理。</p>"
-        "<p class='text-blue-200 text-xs'>添加后发送想要领取的资料名称，肥姐亲自发你完整版。</p>"
-        "</div></div></div>" % (QR_URL, context))
+WECHAT_ID = "feijiewencai"  # TODO: 替换为真实微信号（contact.html / 页脚 / 文章钩子卡共用）
 
 def author_card():
     return (
@@ -58,21 +47,27 @@ def author_card():
         "<p class='text-xs text-gray-400 mb-1'>作者</p>"
         "<h3 class='text-lg font-bold text-gray-900 mb-1'>肥姐问财</h3>"
         "<p class='text-sm text-gray-600 leading-relaxed'>信托公司财富管理理财经理 · 专注家族信托、资产隔离、婚姻财富保全与低利率资产配置</p>"
-        "<p class='text-xs text-gray-400 mt-2'>扫码加微信，备注「网站」领取资料包</p>"
+        "<p class='text-xs text-gray-400 mt-2'>添加微信备注「网站」，可预约一对一架构探讨</p>"
         "</div></div>" % QR_URL)
 
 def hook_card(keyword, magnet, desc):
     return (
-        "<div class='bg-amber-50 border border-amber-200 rounded-2xl p-6 my-8'>"
-        "<p class='text-amber-700 text-sm font-semibold mb-1'>📥 免费领取</p>"
-        "<h3 class='text-lg font-bold text-amber-900 mb-2'>%s</h3>"
-        "<p class='text-sm text-gray-700 leading-relaxed mb-4'>%s</p>"
-        "<div class='flex flex-col md:flex-row items-center gap-4'>"
-        "<img src='%s' alt='肥姐问财微信二维码' class='w-24 h-24 rounded-lg bg-white p-1 border border-amber-200 shrink-0' loading='lazy'>"
-        "<div class='text-sm text-gray-700'>"
-        "<p class='mb-1'>① 扫码加肥姐微信，备注「<strong>%s</strong>」直接领取</p>"
-        "<p>② 或添加后发送「<strong>%s</strong>」，资料马上发你，还可顺便做一次免费的资产结构梳理</p>"
-        "</div></div></div>" % (magnet, desc, QR_URL, keyword, keyword))
+        "<div class='relative overflow-hidden bg-gradient-to-br from-blue-950 via-blue-900 to-blue-800 rounded-2xl shadow-lg ring-1 ring-white/10 p-6 md:p-8 my-10 text-white'>"
+        "<div class='absolute -top-20 -right-20 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl pointer-events-none'></div>"
+        "<div class='relative flex flex-col md:flex-row items-center md:items-start gap-7'>"
+        "<img src='%s' alt='肥姐问财微信二维码' class='w-36 h-36 md:w-40 md:h-40 rounded-2xl bg-white p-1.5 shadow-xl shrink-0 order-2 md:order-1' loading='lazy'>"
+        "<div class='flex-1 w-full order-1 md:order-2'>"
+        "<p class='text-amber-300/90 text-[11px] font-medium tracking-[0.3em] mb-2.5'>私密咨询 · 架构探讨</p>"
+        "<h3 class='text-lg md:text-xl font-semibold mb-2 leading-snug'>探讨家族财富法税与传承架构</h3>"
+        "<p class='text-blue-100/75 text-sm leading-relaxed mb-5'>所有沟通均严格遵循客观中立与私密原则。</p>"
+        "<div class='bg-white/10 backdrop-blur-sm ring-1 ring-white/15 rounded-lg px-4 py-2.5 flex items-center justify-between gap-3 mb-2.5'>"
+        "<span class='text-sm whitespace-nowrap'><span class='text-blue-200/75'>微信号：</span><span id='wechat-id' class='font-mono tracking-widest'>%s</span></span>"
+        "<button onclick='copyWechatId()' type='button' class='shrink-0 bg-amber-400 hover:bg-amber-300 active:scale-95 text-blue-950 text-xs font-medium px-3.5 py-1.5 rounded-md transition'>复制</button>"
+        "</div>"
+        "<p class='text-blue-200/60 text-[11px] mb-5'>（手机端可长按识别二维码，或复制微信号添加好友，备注：网站）</p>"
+        "<p class='text-xs text-blue-200/70'>添加好友后，免费发送完整版 <span class='text-amber-300'>%s</span></p>"
+        "</div></div></div>"
+        % (QR_URL, WECHAT_ID, magnet))
 
 def disclaimer():
     return ("<div class='bg-gray-100 rounded-xl p-4 my-8 text-xs text-gray-500 leading-relaxed'>"
@@ -265,13 +260,13 @@ def render_page(article, faq, related=None):
     tail = ""
     # 从 FAQ 提取主关键词做钩子（category -> 钩子映射）
     hook_map = {
-        "family-trust": ("传承", "《资产隔离自查清单》", "6 个问题，测测你的家企资产\"防火墙\"，覆盖混同、婚姻、债务、传承四大风险。"),
-        "debt-isolation": ("隔离", "《资产隔离自查清单》", "6 个问题自查家企混同、债务连带、传承空白，给家庭资产装上\"防火墙\"。"),
-        "marriage-protection": ("隔离", "《资产隔离自查清单》", "给子女的钱、婚前婚后的安排，6 个问题帮你自查婚姻财产风险敞口。"),
-        "wealth-allocation": ("配置", "《一页纸配置自查表》", "三笔钱分筐 → 3 问测风格 → 三档比例 → 10% 试水行动卡，5 分钟理清配置方向。"),
+        "family-trust": ("传承", "《资产隔离自查清单.pdf》"),
+        "debt-isolation": ("隔离", "《资产隔离自查清单.pdf》"),
+        "marriage-protection": ("隔离", "《资产隔离自查清单.pdf》"),
+        "wealth-allocation": ("配置", "《一页纸资产配置自查表.pdf》"),
     }
-    kw, magnet, desc = hook_map.get(article["category"], ("配置", "《一页纸配置自查表》", "三笔钱分筐，5 分钟理清配置方向。"))
-    tail += hook_card(kw, magnet, desc)
+    kw, magnet = hook_map.get(article["category"], ("配置", "《一页纸资产配置自查表.pdf》"))
+    tail += hook_card(kw, magnet, "")
     if related:
         cards = ""
         for r in related:
@@ -352,21 +347,9 @@ def render_homepage(articles):
             % (a["category"], a["slug"], CATEGORIES[a["category"]], html.escape(a["title"]), html.escape(a["description"])))
     html_parts.append("<section class='mb-14'><h2 class='text-2xl font-bold text-gray-900 mb-6'>全部长青 FAQ</h2>"
                       "<div class='grid sm:grid-cols-2 gap-5'>" + "\n".join(art_cards) + "</div></section>")
-    # 联系区（二维码）
-    html_parts.append(
-        "<section id='contact' class='bg-gradient-to-br from-blue-900 to-blue-700 rounded-3xl p-8 md:p-12 text-white mb-4'>"
-        "<div class='flex flex-col md:flex-row items-center gap-8'>"
-        "<img src='/images/wechat-qr.jpg' alt='肥姐问财微信二维码' class='w-40 h-40 md:w-44 md:h-44 rounded-2xl bg-white p-2 shrink-0' loading='lazy'>"
-        "<div class='text-center md:text-left'>"
-        "<p class='text-amber-300 text-sm font-semibold mb-2'>一对一咨询</p>"
-        "<h2 class='text-2xl md:text-3xl font-bold mb-3'>加肥姐微信，聊聊你的钱怎么安排</h2>"
-        "<p class='text-blue-100 leading-relaxed mb-4'>肥姐是信托公司财富管理理财经理，做高净值财富规划十几年。"
-        "扫二维码加微信，备注「网站」，帮你做一次免费的资产结构梳理——只理思路，不推销。</p>"
-        "<div class='flex flex-wrap gap-2 text-xs'>"
-        "<span class='bg-white/10 rounded-full px-3 py-1.5'>加微信领《资产隔离自查清单》</span>"
-        "<span class='bg-white/10 rounded-full px-3 py-1.5'>加微信领《一页纸配置自查表》</span>"
-        "<span class='bg-white/10 rounded-full px-3 py-1.5'>加微信领《固收+四看清单》</span>"
-        "</div></div></div></section>")
+    # 联系区（私银级联系模块，模板化）
+    contact_html = (TEMPLATES / "contact.html").read_text(encoding="utf-8").replace("{{WECHAT_ID}}", WECHAT_ID)
+    html_parts.append(contact_html)
     content = "\n".join(html_parts)
     page = (base
             .replace("{{TITLE}}", "肥姐问财 · 信托知识库")

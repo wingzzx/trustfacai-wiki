@@ -16,5 +16,15 @@
 {{CONTENT}}
 </main>
 {{FOOTER}}
+<div id="copy-toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-900/95 text-white text-sm px-5 py-2.5 rounded-full shadow-xl opacity-0 pointer-events-none transition-opacity duration-300 z-50">微信号已复制，打开微信即可添加</div>
+<script>
+function copyWechatId(){
+  var el=document.getElementById('wechat-id');if(!el)return;
+  var id=(el.textContent||el.innerText||'').trim();
+  function done(){var t=document.getElementById('copy-toast');if(!t)return;t.classList.remove('opacity-0','pointer-events-none');setTimeout(function(){t.classList.add('opacity-0','pointer-events-none');},2200);}
+  function fb(){var ta=document.createElement('textarea');ta.value=id;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){}document.body.removeChild(ta);}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(id).then(done,fb);}else{fb();}
+}
+</script>
 </body>
 </html>

@@ -158,9 +158,9 @@ def extract_faq(md):
         qm = re.match(r"\*\*Q[:：]\s*(.+)$", line)
         am = re.match(r"\*\*A[:：]\s*(.+)$", line)
         if qm:
-            q = qm.group(1).strip().strip("*").strip()
+            q = qm.group(1).strip().replace("**", "").strip()
         elif am and q:
-            a = am.group(1).strip().strip("*").strip()
+            a = am.group(1).strip().replace("**", "").strip()
             faq.append({"q": q, "a": a})
             q = None
     return faq

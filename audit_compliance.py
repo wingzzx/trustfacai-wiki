@@ -138,6 +138,11 @@ def apply_fix(text):
 
 
 def main():
+    # Windows GBK 控制台兼容: 强制 UTF-8 输出, 无法编码的字符降级替换
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
     fix = "--fix" in sys.argv
     files = scan_files()
     all_hits = []

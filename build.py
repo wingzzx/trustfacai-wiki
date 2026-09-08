@@ -54,7 +54,7 @@ def hook_card(keyword, magnet, desc):
         "<div class='relative overflow-hidden bg-gradient-to-br from-blue-950 via-blue-900 to-blue-800 rounded-2xl shadow-lg ring-1 ring-white/10 p-6 md:p-8 my-10 text-white'>"
         "<div class='absolute -top-20 -right-20 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl pointer-events-none'></div>"
         "<div class='relative flex flex-col md:flex-row items-center md:items-start gap-7'>"
-        "<img src='%s' alt='肥姐问财微信二维码' class='w-36 h-36 md:w-40 md:h-40 rounded-2xl bg-white p-1.5 shadow-xl shrink-0 order-2 md:order-1' loading='lazy'>"
+        "<img src='%s' alt='肥姐问财微信二维码' width='576' height='858' class='w-32 h-auto md:w-36 rounded-2xl bg-white p-1.5 shadow-xl shrink-0 order-2 md:order-1' loading='lazy'>"
         "<div class='flex-1 w-full order-1 md:order-2'>"
         "<p class='text-amber-300/90 text-[11px] font-medium tracking-[0.3em] mb-2.5'>私密咨询 · 架构探讨</p>"
         "<h3 class='text-lg md:text-xl font-semibold mb-2 leading-snug'>探讨家族财富法税与传承架构</h3>"
